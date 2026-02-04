@@ -7,7 +7,6 @@ import android.os.*
 import android.view.MotionEvent
 import android.view.SurfaceView
 import kotlin.math.hypot
-import kotlin.math.max
 
 class GameView(context: Context) : SurfaceView(context), Runnable {
 
@@ -113,16 +112,13 @@ class GameView(context: Context) : SurfaceView(context), Runnable {
             ballX = nextX
             ballY = nextY
         } else {
-            velX = 0f
-            velY = 0f
+            velX *= -1f
+            velY *= -1f
         }
 
         if (hypot(ballX - lvl.goalX, ballY - lvl.goalY) < lvl.goalRadius) {
-            radius = max(0f, radius - 1.2f)
-            if (radius <= 1f) {
-                state = State.WIN
-                postDelayed({ state = State.MENU }, 800)
-            }
+            state = State.WIN
+            postDelayed({ state = State.MENU }, 800)
         }
 
         handleBorders()
