@@ -1,7 +1,6 @@
 package com.example.labirynt
 
 import android.content.Context
-import android.graphics.RectF
 import org.json.JSONObject
 
 object LevelLoader {
@@ -10,31 +9,57 @@ object LevelLoader {
         val json = context.assets.open(file).bufferedReader().readText()
         val obj = JSONObject(json)
 
-        val scaleX = w / 1000f
-        val scaleY = h / 600f
+        val mapJson = obj.getJSONArray("map")
+        val rows = mapJson.length()
+        val cols = mapJson.getString(0).length
 
-        val walls = mutableListOf<RectF>()
-        val wallsJson = obj.getJSONArray("walls")
+        val baseTile = obj.getInt("tileSize").toFloat()
+        val scaleX = w / (cols * baseTile)
+        val scaleY = h / (rows * baseTile)
+        val scale = minOf(scaleX, scaleY)
 
-        for (i in 0 until wallsJson.length()) {
-            val o = wallsJson.getJSONObject(i)
-            walls.add(
-                RectF(
-                    o.getDouble("x").toFloat() * scaleX,
-                    o.getDouble("y").toFloat() * scaleY,
-                    (o.getDouble("x") + o.getDouble("w")).toFloat() * scaleX,
-                    (o.getDouble("y") + o.getDouble("h")).toFloat() * scaleY
-                )
-            )
+        val tileSize = baseTile * scale
+
+        val mapWidth = cols * tileSize
+        val mapHeight = rows * tileSize
+
+        val offsetX = (w - mapWidth) / 2f
+        val offsetY = (h - mapHeight) / 2f
+
+        val map = Array(rows) { y ->
+            mapJson.getString(y).toCharArray()
+        }
+
+        var sx = 0f
+        var sy = 0f
+        var gx = 0f
+        var gy = 0f
+
+        for (y in 0 until rows) {
+            for (x in 0 until cols) {
+                when (map[y][x]) {
+                    'S' -> {
+                        sx = (x + 0.5f) * tileSize
+                        sy = (y + 0.5f) * tileSize
+                    }
+                    'G' -> {
+                        gx = (x + 0.5f) * tileSize
+                        gy = (y + 0.5f) * tileSize
+                    }
+                }
+            }
         }
 
         return Level(
-            obj.getJSONObject("start").getDouble("x").toFloat() * scaleX,
-            obj.getJSONObject("start").getDouble("y").toFloat() * scaleY,
-            obj.getJSONObject("goal").getDouble("x").toFloat() * scaleX,
-            obj.getJSONObject("goal").getDouble("y").toFloat() * scaleY,
-            obj.getJSONObject("goal").getDouble("radius").toFloat() * scaleX,
-            walls
+            map,
+            tileSize,
+            sx + offsetX,
+            sy + offsetY,
+            gx + offsetX,
+            gy + offsetY,
+            tileSize * 0.4f,
+            offsetX,
+            offsetY
         )
     }
 }

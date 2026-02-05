@@ -100,13 +100,7 @@ class GameView(context: Context) : SurfaceView(context), Runnable {
         )
 
         var collision = false
-        for (wall in lvl.walls) {
-            if (RectF.intersects(nextRect, wall)) {
-                collision = true
-                vibrate(30)
-                break
-            }
-        }
+        collision = collidesWithMap(lvl, nextRect)
 
         if (!collision) {
             ballX = nextX
@@ -165,7 +159,20 @@ class GameView(context: Context) : SurfaceView(context), Runnable {
         canvas.drawColor(Color.WHITE)
 
         paint.color = Color.DKGRAY
-        lvl.walls.forEach { canvas.drawRect(it, paint) }
+        paint.color = Color.DKGRAY
+        for (y in lvl.map.indices) {
+            for (x in lvl.map[0].indices) {
+                if (lvl.map[y][x] == '1') {
+                    canvas.drawRect(
+                        x * lvl.tileSize,
+                        y * lvl.tileSize,
+                        (x + 1) * lvl.tileSize,
+                        (y + 1) * lvl.tileSize,
+                        paint
+                    )
+                }
+            }
+        }
 
         paint.color = Color.BLACK
         canvas.drawCircle(lvl.goalX, lvl.goalY, lvl.goalRadius, paint)
@@ -205,5 +212,38 @@ class GameView(context: Context) : SurfaceView(context), Runnable {
         }
 
         holder.unlockCanvasAndPost(canvas)
+    }
+
+    private fun collidesWithMap(level: Level, player: RectF): Boolean {
+        val ts = level.tileSize
+
+        val left = (player.left / ts).toInt()
+        val right = (player.right / ts).toInt()
+        val top = (player.top / ts).toInt()
+        val bottom = (player.bottom / ts).toInt()
+
+        for (y in top..bottom) {
+            for (x in left..right) {
+                if (y !in level.map.indices ||
+                    x !in level.map[0].indices
+                ) continue
+
+                val tile = TileType.fromChar(level.map[y][x])
+                if (!tile.solid) continue
+
+                val tileRect = RectF(
+                    x * ts,
+                    y * ts,
+                    (x + 1) * ts,
+                    (y + 1) * ts
+                )
+
+                if (RectF.intersects(player, tileRect)) {
+                    vibrate(10)
+                    return true
+                }
+            }
+        }
+        return false
     }
 }
