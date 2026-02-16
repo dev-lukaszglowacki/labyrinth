@@ -17,7 +17,6 @@ class GameView(context: Context) : SurfaceView(context), Runnable {
     @Volatile private var running = false
 
     private val settingsRect = RectF()
-
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
 
@@ -79,7 +78,7 @@ class GameView(context: Context) : SurfaceView(context), Runnable {
         }
         velX = 0f
         velY = 0f
-        radius = radiusBase
+        radius = level?.tileSize?.times(0.35f) ?: radiusBase
     }
 
     private fun update() {
@@ -92,22 +91,27 @@ class GameView(context: Context) : SurfaceView(context), Runnable {
         velY *= 0.98f
 
         val nextX = ballX + velX
-        val nextY = ballY + velY
-
-        val nextRect = RectF(
-            nextX - radius, nextY - radius,
-            nextX + radius, nextY + radius
+        val rectX = RectF(
+            nextX - radius, ballY - radius,
+            nextX + radius, ballY + radius
         )
 
-        var collision = false
-        collision = collidesWithMap(lvl, nextRect)
-
-        if (!collision) {
+        if (!collidesWithMap(lvl, rectX)) {
             ballX = nextX
+        } else {
+            velX *= -0.4f
+        }
+
+        val nextY = ballY + velY
+        val rectY = RectF(
+            ballX - radius, nextY - radius,
+            ballX + radius, nextY + radius
+        )
+
+        if (!collidesWithMap(lvl, rectY)) {
             ballY = nextY
         } else {
-            velX *= -1f
-            velY *= -1f
+            velY *= -0.4f
         }
 
         if (hypot(ballX - lvl.goalX, ballY - lvl.goalY) < lvl.goalRadius) {
@@ -134,21 +138,12 @@ class GameView(context: Context) : SurfaceView(context), Runnable {
         }
 
         when (state) {
-            State.MENU -> {
-                reset()
-                state = State.PLAYING
-            }
+            State.MENU -> { reset(); state = State.PLAYING }
             State.PLAYING -> state = State.PAUSED
             State.PAUSED -> state = State.PLAYING
             State.WIN -> state = State.MENU
         }
         return true
-    }
-
-    private fun vibrate(ms: Long) {
-        if (Build.VERSION.SDK_INT >= 26)
-            vibrator.vibrate(VibrationEffect.createOneShot(ms, 80))
-        else vibrator.vibrate(ms)
     }
 
     private fun drawGame() {
@@ -158,7 +153,9 @@ class GameView(context: Context) : SurfaceView(context), Runnable {
         val canvas = holder.lockCanvas()
         canvas.drawColor(Color.WHITE)
 
-        paint.color = Color.DKGRAY
+        canvas.save()
+        canvas.translate(lvl.offsetX, lvl.offsetY)
+
         paint.color = Color.DKGRAY
         for (y in lvl.map.indices) {
             for (x in lvl.map[0].indices) {
@@ -175,20 +172,32 @@ class GameView(context: Context) : SurfaceView(context), Runnable {
         }
 
         paint.color = Color.BLACK
-        canvas.drawCircle(lvl.goalX, lvl.goalY, lvl.goalRadius, paint)
+        canvas.drawCircle(
+            lvl.goalX,
+            lvl.goalY,
+            lvl.goalRadius,
+            paint
+        )
 
         if (state != State.MENU && state != State.WIN) {
             paint.color = Color.BLUE
-            canvas.drawCircle(ballX, ballY, radius, paint)
+            canvas.drawCircle(
+                ballX,
+                ballY,
+                radius,
+                paint
+            )
         }
+
+        canvas.restore()
 
         paint.textAlign = Paint.Align.CENTER
         paint.textSize = 60f
         paint.color = Color.BLACK
 
         if (state == State.MENU) {
-            val size = 100f
-            val pad = 30f
+            val size = 120f
+            val pad = 40f
 
             settingsRect.set(
                 width - size - pad,
@@ -197,17 +206,27 @@ class GameView(context: Context) : SurfaceView(context), Runnable {
                 pad + size
             )
 
-            paint.textAlign = Paint.Align.CENTER
-            paint.textSize = 70f
-            paint.color = Color.BLACK
+            paint.textSize = 80f
+            canvas.drawText(
+                "⚙",
+                settingsRect.centerX(),
+                settingsRect.centerY() + 30f,
+                paint
+            )
 
-            canvas.drawText("⚙", settingsRect.centerX(), settingsRect.centerY() + 25f, paint)
+            canvas.drawText(
+                "Touch to start",
+                width / 2f,
+                height / 2f,
+                paint
+            )
         }
 
         when (state) {
-            State.MENU -> canvas.drawText("Touch to start", width / 2f, height / 2f, paint)
-            State.PAUSED -> canvas.drawText("Pause", width / 2f, height / 2f, paint)
-            State.WIN -> canvas.drawText("WIN!", width / 2f, height / 2f, paint)
+            State.PAUSED ->
+                canvas.drawText("Pause", width / 2f, height / 2f, paint)
+            State.WIN ->
+                canvas.drawText("WIN!", width / 2f, height / 2f, paint)
             else -> {}
         }
 
@@ -228,8 +247,7 @@ class GameView(context: Context) : SurfaceView(context), Runnable {
                     x !in level.map[0].indices
                 ) continue
 
-                val tile = TileType.fromChar(level.map[y][x])
-                if (!tile.solid) continue
+                if (level.map[y][x] != '1') continue
 
                 val tileRect = RectF(
                     x * ts,
@@ -239,7 +257,6 @@ class GameView(context: Context) : SurfaceView(context), Runnable {
                 )
 
                 if (RectF.intersects(player, tileRect)) {
-                    vibrate(10)
                     return true
                 }
             }
