@@ -2,10 +2,12 @@ package com.example.labirynt
 
 import android.content.Context
 import org.json.JSONObject
+import kotlin.math.min
 
 object LevelLoader {
 
     fun load(context: Context, file: String, w: Int, h: Int): Level {
+
         val json = context.assets.open(file).bufferedReader().readText()
         val obj = JSONObject(json)
 
@@ -14,9 +16,10 @@ object LevelLoader {
         val cols = mapJson.getString(0).length
 
         val baseTile = obj.getInt("tileSize").toFloat()
+
         val scaleX = w / (cols * baseTile)
         val scaleY = h / (rows * baseTile)
-        val scale = minOf(scaleX, scaleY)
+        val scale = min(scaleX, scaleY)
 
         val tileSize = baseTile * scale
 
@@ -53,10 +56,10 @@ object LevelLoader {
         return Level(
             map,
             tileSize,
-            sx + offsetX,
-            sy + offsetY,
-            gx + offsetX,
-            gy + offsetY,
+            sx,
+            sy,
+            gx,
+            gy,
             tileSize * 0.4f,
             offsetX,
             offsetY
