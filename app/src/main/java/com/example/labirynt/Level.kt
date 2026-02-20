@@ -1,7 +1,5 @@
 package com.example.labirynt
 
-import android.graphics.RectF
-
 class Level(
     val map: Array<CharArray>,
     val tileSize: Float,

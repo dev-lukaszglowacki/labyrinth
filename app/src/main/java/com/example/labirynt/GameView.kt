@@ -3,7 +3,6 @@ package com.example.labirynt
 import android.content.Context
 import android.content.Intent
 import android.graphics.*
-import android.os.*
 import android.view.MotionEvent
 import android.view.SurfaceView
 import kotlin.math.hypot
@@ -18,7 +17,6 @@ class GameView(context: Context) : SurfaceView(context), Runnable {
 
     private val settingsRect = RectF()
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-    private val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
 
     private var level: Level? = null
 
